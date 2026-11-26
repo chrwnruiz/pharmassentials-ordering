@@ -1,0 +1,15 @@
+{
+     "name": "PHARMASSENTIALS Ordering",
+     "short_name": "PHARMASSENTIALS",
+     "start_url": "./index.html",
+     "display": "standalone",
+     "background_color": "#f3f5f8",
+     "theme_color": "#f3f5f8",
+     "icons": [
+       {
+         "src": "logo.png",
+         "sizes": "512x512",
+         "type": "image/png"
+       }
+     ]
+   }
