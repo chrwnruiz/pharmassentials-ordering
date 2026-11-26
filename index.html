@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3f5f8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.json" />
+  <title>PHARMASSENTIALS — Mobile Ordering App</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load jsPDF & jsPDF-AutoTable for PDF Order List Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Load Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4fae6',
+              100: '#e6f4c7',
+              500: '#96C92D',
+              600: '#7FB01E',
+              700: '#648C16',
+              magenta: '#D44D78',
+              magentaDark: '#B83962',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --spring-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --ios-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: radial-gradient(circle at 15% 10%, rgba(150, 201, 45, 0.14), transparent 42%),
+                  radial-gradient(circle at 85% 20%, rgba(212, 77, 120, 0.11), transparent 45%),
+                  #f3f5f8;
+      overscroll-behavior-y: contain;
+    }
+
+    /* iOS 27 Liquid Glass Surface */
+    .liquid-glass {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      box-shadow:
+        0 14px 38px -8px rgba(15, 23, 42, 0.14),
+        0 4px 12px -2px rgba(15, 23, 42, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 0.92),
+        inset 0 -1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .liquid-glass-subtle {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(20px) saturate(170%);
+      -webkit-backdrop-filter: blur(20px) saturate(170%);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    /* Sliding Glass Pill Indicator inside Bottom Dock */
+    .nav-pill-indicator {
+      background: linear-gradient(135deg, rgba(150, 201, 45, 0.22), rgba(212, 77, 120, 0.16));
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow:
+        0 4px 14px rgba(150, 201, 45, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+      transition: transform 0.42s var(--ios-bounce), width 0.35s var(--spring-ease);
+    }
+
+    /* Smooth View Transitions */
+    .view-panel {
+      transition: opacity 0.28s var(--spring-ease), transform 0.32s var(--spring-ease);
+    }
+    .view-panel.hidden-view {
+      display: none;
+    }
+    .view-panel.entering {
+      animation: panelFadeIn 0.32s var(--spring-ease) forwards;
+    }
+
+    @keyframes panelFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Tactile iOS Press Feedback */
+    .ios-press {
+      transition: transform 0.2s var(--ios-bounce), background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ios-press:active {
+      transform: scale(0.95);
+    }
+
+    /* Hide scrollbar on horizontal pills */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Native Play Store App Launch Splash & Entrance */
+    #appLaunchSplash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at 50% 42%, #ffffff 0%, #f3f5f8 70%, #e9eef4 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.5s;
+    }
+
+    #appLaunchSplash.splash-hide {
+      opacity: 0;
+      transform: scale(1.06);
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    @keyframes splashLogoPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.76) translateY(14px);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(1.04) translateY(-2px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes splashTextRise {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .splash-logo-anim {
+      animation: splashLogoPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .splash-text-anim {
+      opacity: 0;
+      animation: splashTextRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.18s forwards;
+    }
+
+    .app-shell-enter {
+      animation: appShellZoomIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes appShellZoomIn {
+      from {
+        opacity: 0.4;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    #bottomNavDock {
+      position: fixed;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      left: 0;
+      right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      z-index: 60;
+      width: 92%;
+      max-width: 408px;
+    }
+  </style>
+</head>
+<body class="text-slate-800 font-sans min-h-screen flex justify-center antialiased selection:bg-brand-500/20">
+
+  <!-- Smooth Native App Open Splash Overlay -->
+  <div id="appLaunchSplash" aria-hidden="true">
+    <div class="splash-logo-anim w-24 h-24 rounded-[28px] bg-white shadow-xl border border-white flex items-center justify-center p-2.5">
+      <svg class="w-full h-full" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M43 34C43 22.5 50.6 15 60 15C69.4 15 77 22.5 77 34" stroke="#96C92D" stroke-width="7.5" stroke-linecap="round" />
+        <path d="M31 38C31.5 35.2 33.9 33 36.8 33H83.2C86.1 33 88.5 35.2 89 38L97.5 96C98.3 101.5 94 106.5 88.4 106.5H31.6C26 106.5 21.7 101.5 22.5 96L31 38Z" fill="#96C92D" />
+        <path d="M36.8 33H83.2C86.1 33 88.5 35.2 89 38L92.5 62C74 78 52 89 23.5 92L31 38C31.5 35.2 33.9 33 36.8 33Z" fill="#FFFFFF" fill-opacity="0.16" />
+        <circle cx="56" cy="48.5" r="2.7" fill="#D44D78" />
+        <circle cx="49" cy="55.5" r="2.1" fill="#D44D78" />
+        <circle cx="66.5" cy="52.5" r="1.7" fill="#D44D78" />
+        <path d="M43 87C42.5 68 56 56 76 52C79 71 67 86 46 88.5C44.5 88.7 43 88.1 43 87Z" fill="#D44D78" />
+        <path d="M44.5 86C52 77 60 69 70 61" stroke="#8EC326" stroke-width="2.1" stroke-linecap="round" />
+        <path d="M43.5 87.2L39.5 91" stroke="#E57A9B" stroke-width="3.2" stroke-linecap="round" />
+      </svg>
+    </div>
+    <div class="splash-text-anim mt-4 text-center">
+      <p class="text-base font-extrabold tracking-tight text-slate-900">
+        PHARMA<span class="text-[#7FB01E]">SSENTIALS</span>
+      </p>
+      <p class="text-[11px] font-semibold tracking-widest uppercase text-[#D44D78] mt-0.5">
+        Pharmacy Ordering
+      </p>
+    </div>
+  </div>
+
+  <!-- Phone-Size Container (Centered sleek frame on desktop, 100% native fit on mobile) -->
+  <div id="appMainShell" class="app-shell-enter w-full max-w-[440px] min-h-screen flex flex-col relative bg-transparent sm:shadow-2xl sm:border-x sm:border-white/70">
+
+    <!-- Compact Auto-Hide Top Header with New Bag + Leaf Logo -->
+    <header id="mainHeader" class="sticky top-0 z-30 transition-transform duration-300 ease-out will-change-transform px-3.5 pt-3 pb-2">
+      <div class="liquid-glass-subtle rounded-3xl px-3.5 py-2.5 flex items-center justify-between gap-2.5">
+        <!-- New PHARMASSENTIALS App Logo (Lime Bag + Magenta Leaf) -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-11 h-11 rounded-2xl bg-white shadow-xs border border-slate-100 flex items-center justify-center shrink-0 p-1">
+            <svg class="w-full h-full" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PHARMASSENTIALS App Logo">
+              <defs>
+                <linearGradient id="bagGrad" x1="25" y1="36" x2="95" y2="108" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#9AD02E" />
+                  <stop offset="65%" stop-color="#8EC326" />
+                  <stop offset="100%" stop-color="#7EB11E" />
+                </linearGradient>
+                <linearGradient id="leafGrad" x1="42" y1="54" x2="78" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#E25884" />
+                  <stop offset="100%" stop-color="#C8416C" />
+                </linearGradient>
+              </defs>
+
+              <!-- Rounded Top Handle -->
+              <path d="M43 34C43 22.5 50.6 15 60 15C69.4 15 77 22.5 77 34" stroke="#96C92D" stroke-width="7.5" stroke-linecap="round" />
+
+              <!-- Main Trapezoid Shopping / Pharmacy Bag Body -->
+              <path d="M31 38C31.5 35.2 33.9 33 36.8 33H83.2C86.1 33 88.5 35.2 89 38L97.5 96C98.3 101.5 94 106.5 88.4 106.5H31.6C26 106.5 21.7 101.5 22.5 96L31 38Z" fill="url(#bagGrad)" />
+
+              <!-- Subtle Gloss Diagonal Highlight -->
+              <path d="M36.8 33H83.2C86.1 33 88.5 35.2 89 38L92.5 62C74 78 52 89 23.5 92L31 38C31.5 35.2 33.9 33 36.8 33Z" fill="#FFFFFF" fill-opacity="0.14" />
+
+              <!-- Subtle Inner Bag Arc Detail -->
+              <path d="M45 43C46.5 52 52.5 57.5 60 57.5C67.5 57.5 73.5 52 75 43" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="2.2" stroke-linecap="round" />
+
+              <!-- Three Magenta Dots Above Leaf -->
+              <circle cx="56" cy="48.5" r="2.7" fill="#D44D78" />
+              <circle cx="49" cy="55.5" r="2.1" fill="#D44D78" />
+              <circle cx="66.5" cy="52.5" r="1.7" fill="#D44D78" />
+
+              <!-- Diagonal Magenta Leaf -->
+              <path d="M43 87C42.5 68 56 56 76 52C79 71 67 86 46 88.5C44.5 88.7 43 88.1 43 87Z" fill="url(#leafGrad)" />
+
+              <!-- Lime Leaf Center Vein Cutout -->
+              <path d="M44.5 86C52 77 60 69 70 61" stroke="#8EC326" stroke-width="2.1" stroke-linecap="round" />
+
+              <!-- Short Leaf Stem -->
+              <path d="M43.5 87.2L39.5 91" stroke="#E57A9B" stroke-width="3.2" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-sm font-extrabold tracking-tight text-slate-900 truncate">
+                PHARMA<span class="text-[#7FB01E]">SSENTIALS</span>
+              </h1>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span id="syncStatusDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+              <span id="syncStatusText" class="truncate">MAIN SHEET • Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Sync Pill Button -->
+        <button
+          id="syncInventoryBtn"
+          type="button"
+          class="ios-press px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs shrink-0"
+        >
+          <svg id="syncIcon" class="w-3.5 h-3.5 text-[#96C92D]" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Sync</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Non-blocking Floating Pill Toast -->
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 w-full max-w-[380px] px-4 pointer-events-none"></div>
+
+    <!-- Main Scrollable Viewport (Padded at bottom for Floating iOS 27 Glass Bar) -->
+    <main class="flex-1 px-3.5 pt-1 pb-28 space-y-3.5">
+
+      <!-- ========================================================= -->
+      <!-- TAB 1: CATALOG / SEARCH VIEW                              -->
+      <!-- ========================================================= -->
+      <section id="viewCatalog" class="view-panel space-y-3">
+        <!-- Search & Category Filter Card -->
+        <div class="liquid-glass-subtle rounded-3xl p-3 space-y-2.5">
+          <div class="relative">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Search gamot o produkto (Expel, Candez, Milk)..."
+              class="w-full pl-9 pr-9 py-2.5 text-sm rounded-2xl bg-slate-100/80 border border-transparent focus:bg-white focus:border-[#96C92D] focus:ring-2 focus:ring-[#96C92D]/20 outline-none transition"
+            />
+            <button
+              id="clearSearchBtn"
+              type="button"
+              aria-label="Clear search"
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full bg-slate-200/70"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Horizontal Smooth Category Pills -->
+          <div id="categoryPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Count Row -->
+        <div class="flex items-center justify-between px-1.5 text-[11px] text-slate-500">
+          <span id="catalogCountText" class="font-medium">Loading items...</span>
+          <span id="lastSyncedText" class="text-slate-400"></span>
+        </div>
+
+        <!-- Mobile Item Cards -->
+        <div id="catalogList" class="space-y-2.5">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TAB 2: ORDER LIST & PDF EXPORT VIEW                       -->
+      <!-- ========================================================= -->
+      <section id="viewOrder" class="view-panel hidden-view space-y-3">
+        <!-- Summary Header Card -->
+        <div class="rounded-3xl p-4 text-white shadow-md relative overflow-hidden" style="background: linear-gradient(135deg, #16181d 0%, #262932 55%, #3a1f2b 100%);">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-[#96C92D]">
+                Automated Order Sheet
+              </span>
+              <h2 class="text-lg font-extrabold tracking-tight mt-0.5 flex items-center gap-2">
+                <span>Listahan ng Io-order</span>
+              </h2>
+            </div>
+            <div class="text-right bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/15">
+              <span class="block text-[10px] text-slate-300">Total Qty</span>
+              <span id="orderTotalUnits" class="text-lg font-extrabold text-[#96C92D] tabular-nums">0</span>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs">
+            <span id="orderDistinctCount" class="text-slate-300 font-medium tabular-nums">0 unique items</span>
+            <div class="flex items-center gap-1 bg-black/30 p-0.5 rounded-xl">
+              <button
+                id="groupByCategoryBtn"
+                type="button"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white text-slate-900 transition"
+              >
+                By Category
+              </button>
+              <button
+                id="groupFlatBtn"
+                type="button"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition"
+              >
+                Flat
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Action Buttons (Download PDF, Copy Text, Send to Google Sheet) -->
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            id="exportPdfBtn"
+            type="button"
+            class="ios-press col-span-2 py-3 px-4 rounded-2xl bg-[#D44D78] text-white font-bold text-sm shadow-sm disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Download Order List (PDF)</span>
+          </button>
+
+          <button
+            id="copyOrderTextBtn"
+            type="button"
+            class="ios-press py-2.5 px-3 rounded-2xl liquid-glass-subtle text-slate-800 font-semibold text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+          >
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span>Copy Text</span>
+          </button>
+
+          <button
+            id="sendToSheetsBtn"
+            type="button"
+            class="ios-press py-2.5 px-3 rounded-2xl bg-[#96C92D] text-slate-950 font-bold text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Send to Sheet</span>
+          </button>
+        </div>
+
+        <!-- Order Items List -->
+        <div class="liquid-glass-subtle rounded-3xl p-3.5">
+          <div class="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-100">
+            <span class="text-xs font-bold text-slate-700">Selected Items</span>
+            <button
+              id="clearOrderBtn"
+              type="button"
+              class="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              Clear All
+            </button>
+          </div>
+          <div id="orderItemsContainer" class="divide-y divide-slate-100">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TAB 3: ADD CUSTOM ITEM VIEW                               -->
+      <!-- ========================================================= -->
+      <section id="viewAdd" class="view-panel hidden-view space-y-3">
+        <div class="liquid-glass-subtle rounded-3xl p-4 space-y-3.5">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#D44D78]">Quick Entry</span>
+            <h2 class="text-base font-extrabold text-slate-900">Add New Item / Medicine</h2>
+            <p class="text-xs text-slate-500">Para sa mga gamot o produkto na wala pa sa Google Sheet list.</p>
+          </div>
+
+          <form id="customItemForm" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Medicine / Product Name *</label>
+              <input
+                id="customName"
+                type="text"
+                required
+                placeholder="e.g., Biogesic 500mg Tablet"
+                class="w-full px-3.5 py-2.5 text-sm rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                <select
+                  id="customCategory"
+                  class="w-full px-3 py-2.5 text-sm rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none"
+                >
+                  <option value="UNILAB">UNILAB</option>
+                  <option value="BRANDED">BRANDED</option>
+                  <option value="GENERIC">GENERIC</option>
+                  <option value="SUPPLEMENTS">SUPPLEMENTS</option>
+                  <option value="INFANT MILK">INFANT MILK</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Unit</label>
+                <input
+                  id="customUnit"
+                  type="text"
+                  value="box"
+                  placeholder="box, bottle, pc"
+                  class="w-full px-3 py-2.5 text-sm rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Order Quantity</label>
+                <input
+                  id="customQty"
+                  type="number"
+                  min="0"
+                  value="1"
+                  class="w-full px-3 py-2.5 text-sm font-bold rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none tabular-nums"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Notes (Optional)</label>
+                <input
+                  id="customNotes"
+                  type="text"
+                  placeholder="e.g., urgent"
+                  class="w-full px-3 py-2.5 text-sm rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="ios-press w-full py-3 rounded-2xl bg-slate-900 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4 text-[#96C92D]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Save &amp; Add to Order List</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- TAB 4: SYNC & APPS SCRIPT SETUP VIEW                      -->
+      <!-- ========================================================= -->
+      <section id="viewSync" class="view-panel hidden-view space-y-3">
+        <!-- Google Sheet Two-Way Sync Card -->
+        <div class="liquid-glass-subtle rounded-3xl p-4 space-y-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#7FB01E]">Cloud Connection</span>
+            <h2 class="text-base font-extrabold text-slate-900">Google Sheets Sync</h2>
+            <p class="text-xs text-slate-500">Connected to <strong>NEW LIST OF DRUGS AND EXPIRY</strong> (MAIN SHEET).</p>
+          </div>
+
+          <button
+            id="syncInventoryBtnAlt"
+            type="button"
+            class="ios-press w-full py-2.5 px-4 rounded-2xl bg-[#96C92D] text-slate-950 font-bold text-xs flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Pull Latest Items from MAIN SHEET</span>
+          </button>
+
+          <div class="pt-2 border-t border-slate-100 space-y-2">
+            <label for="appsScriptUrlInput" class="block text-xs font-bold text-slate-800">
+              Apps Script Web App URL (For "Send to Sheet")
+            </label>
+            <input
+              id="appsScriptUrlInput"
+              type="url"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              class="w-full px-3 py-2 text-xs rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none"
+            />
+            <div class="flex gap-2">
+              <button
+                id="saveScriptUrlBtn"
+                type="button"
+                class="ios-press flex-1 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white"
+              >
+                Save URL
+              </button>
+              <button
+                id="copyAppsScriptBtn"
+                type="button"
+                class="ios-press px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700"
+              >
+                Copy Script
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Import CSV / Paste List Card -->
+        <div class="liquid-glass-subtle rounded-3xl p-4 space-y-3">
+          <h3 class="text-sm font-bold text-slate-900">Import CSV or Paste Rows</h3>
+          <input
+            id="csvFileInput"
+            type="file"
+            accept=".csv,.txt"
+            class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white cursor-pointer"
+          />
+          <textarea
+            id="pasteImportTextarea"
+            rows="3"
+            placeholder="UNILAB, Biogesic 500mg, box, fast moving"
+            class="w-full p-2.5 text-xs font-mono rounded-2xl bg-slate-100/80 border border-slate-200 focus:bg-white outline-none"
+          ></textarea>
+          <div class="flex items-center justify-between gap-2">
+            <button
+              id="resetDefaultCatalogBtn"
+              type="button"
+              class="text-[11px] font-medium text-slate-400 hover:text-slate-700 underline"
+            >
+              Reset sample items
+            </button>
+            <button
+              id="confirmImportBtn"
+              type="button"
+              class="ios-press px-4 py-2 text-xs font-bold rounded-xl bg-[#D44D78] text-white"
+            >
+              Load into Catalog
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden Apps Script Code Source for Copy Button -->
+        <pre id="appsScriptCodeBlock" class="hidden">// 1. Read full medicine list from MAIN SHEET (Columns I, J, K)
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("MAIN SHEET");
+  var lastRow = sheet.getLastRow();
+  var items = [];
+
+  if (lastRow >= 4) {
+    var values = sheet.getRange(4, 9, lastRow - 3, 3).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var category = values[i][0] ? values[i][0].toString().trim() : "OTHER";
+      var name = values[i][1] ? values[i][1].toString().trim() : "";
+      var expiryRaw = values[i][2];
+
+      if (name !== "") {
+        var expiryStr = "";
+        if (expiryRaw instanceof Date) {
+          expiryStr = Utilities.formatDate(expiryRaw, Session.getScriptTimeZone(), "MMM yyyy");
+        } else if (expiryRaw) {
+          expiryStr = expiryRaw.toString().trim();
+        }
+        items.push({
+          id: "sheet-row-" + (i + 4),
+          category: category || "OTHER",
+          name: name,
+          expiry: expiryStr,
+          unit: "box"
+        });
+      }
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: "ok", count: items.length, items: items }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// 2. Append ordered items into "ORDER LIST" tab
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = "ORDER LIST";
+    var sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      sheet.appendRow(["Date Ordered", "Category", "Medicine / Product Name", "Order Qty", "Unit", "Current Expiry", "Notes"]);
+      sheet.getRange("A1:G1").setFontWeight("bold").setBackground("#D44D78").setFontColor("#ffffff");
+      sheet.setFrozenRows(1);
+    }
+
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd hh:mm a");
+    var items = data.items || [];
+    items.forEach(function(item) {
+      sheet.appendRow([
+        timestamp,
+        item.category || "",
+        item.name || "",
+        item.qty || 0,
+        item.unit || "box",
+        item.expiry || "",
+        item.notes || ""
+      ]);
+    });
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "ok", added: items.length }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "error", message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+        }</pre>
+      </section>
+    </main>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- iOS 27 LIQUID GLASS FLOATING BOTTOM NAVIGATION DOCK                 -->
+  <!-- =================================================================== -->
+  <nav id="bottomNavDock" aria-label="Bottom Navigation">
+    <div class="liquid-glass rounded-[30px] p-1.5 relative">
+      <div id="bottomNavGrid" class="grid grid-cols-4 relative">
+        <!-- Animated Liquid Glass Active Pill -->
+        <div id="navGlassPill" class="nav-pill-indicator absolute top-0 bottom-0 left-0 w-1/4 rounded-[24px] pointer-events-none"></div>
+
+        <!-- Tab 1: Catalog -->
+        <button
+          type="button"
+          data-tab="catalog"
+          data-index="0"
+          class="bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-900 font-bold"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+          </svg>
+          <span class="text-[10px] tracking-tight">Catalog</span>
+        </button>
+
+        <!-- Tab 2: Order List (with live badge) -->
+        <button
+          type="button"
+          data-tab="order"
+          data-index="1"
+          class="bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium"
+        >
+          <div class="relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span
+              id="navOrderBadge"
+              class="hidden absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#D44D78] text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs tabular-nums"
+            >
+              0
+            </span>
+          </div>
+          <span class="text-[10px] tracking-tight">Orders</span>
+        </button>
+
+        <!-- Tab 3: Add Item -->
+        <button
+          type="button"
+          data-tab="add"
+          data-index="2"
+          class="bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="text-[10px] tracking-tight">Add Item</span>
+        </button>
+
+        <!-- Tab 4: Sync / Setup -->
+        <button
+          type="button"
+          data-tab="sync"
+          data-index="3"
+          class="bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="text-[10px] tracking-tight">Sync</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <script>
+    /**
+     * PHARMASSENTIALS Mobile Ordering App (iOS 27 Liquid Glass UI)
+     * Synced with Google Sheet: "NEW LIST OF DRUGS AND EXPIRY" (MAIN SHEET, Cols I, J, K)
+     */
+
+    (function () {
+      "use strict";
+
+      const GOOGLE_SHEET_ID = "1fAkEzO0ydvo--mvtQ6CkReCnE6zUrePSHm1hJH7uVGw";
+      const GOOGLE_SHEET_TAB = "MAIN SHEET";
+      const PUBLIC_GVIZ_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(GOOGLE_SHEET_TAB)}`;
+
+      const STORAGE_KEYS = {
+        CATALOG: "pharmassentials_mobile_catalog_v3",
+        ORDERS: "pharmassentials_mobile_orders_v3",
+        SCRIPT_URL: "pharmassentials_mobile_script_url_v3",
+        LAST_SYNCED: "pharmassentials_mobile_last_synced_v3",
+      };
+
+      const DEFAULT_CATALOG = [
+        { id: "itm-1", category: "UNILAB", name: "ACCEDOME 60ML", unit: "bottle", expiry: "2027", notes: "" },
+        { id: "itm-2", category: "GENERIC", name: "ACETYLCYSTEINE 600MG SACHET", unit: "box", expiry: "2027", notes: "" },
+        { id: "itm-3", category: "UNILAB", name: "ALAXAN XTRA TABLET", unit: "box", expiry: "2027", notes: "" },
+        { id: "itm-4", category: "UNILAB", name: "ALLERKID DROPS 10ML", unit: "bottle", expiry: "2027", notes: "" },
+        { id: "itm-5", category: "GENERIC", name: "AMLODIPINE 10MG TABLET", unit: "box", expiry: "2027", notes: "" },
+        { id: "itm-6", category: "BRANDED", name: "AMOCLAV 625MG TABLET", unit: "box", expiry: "2027", notes: "" },
+        { id: "itm-7", category: "UNILAB", name: "BIOGESIC 500MG TABLET", unit: "box", expiry: "2028", notes: "" },
+        { id: "itm-8", category: "MILK", name: "BEAR BRAND FORTIFIED 300G", unit: "pack", expiry: "2027", notes: "" },
+        { id: "itm-9", category: "UNILAB", name: "EXPEL 60 ML", unit: "bottle", expiry: "Feb 2028", notes: "" },
+        { id: "itm-10", category: "BRANDED", name: "CANDEZ 16MG", unit: "box", expiry: "Nov 2026", notes: "" },
+        { id: "itm-11", category: "BRANDED", name: "CARDIOSEL 50MG", unit: "box", expiry: "Nov 2026", notes: "" },
+        { id: "itm-12", category: "BRANDED", name: "BILASTINE 20MG", unit: "box", expiry: "Apr 2027", notes: "" },
+      ];
+
+      let state = {
+        catalog: loadFromStorage(STORAGE_KEYS.CATALOG, DEFAULT_CATALOG),
+        orderMap: loadFromStorage(STORAGE_KEYS.ORDERS, {}),
+        scriptUrl: loadFromStorage(STORAGE_KEYS.SCRIPT_URL, ""),
+        lastSynced: loadFromStorage(STORAGE_KEYS.LAST_SYNCED, ""),
+        searchQuery: "",
+        selectedCategory: "ALL",
+        groupByCategory: true,
+        activeTab: "catalog",
+        isSyncing: false,
+      };
+
+      const els = {
+        mainHeader: document.getElementById("mainHeader"),
+        syncInventoryBtn: document.getElementById("syncInventoryBtn"),
+        syncInventoryBtnAlt: document.getElementById("syncInventoryBtnAlt"),
+        syncIcon: document.getElementById("syncIcon"),
+        syncStatusDot: document.getElementById("syncStatusDot"),
+        syncStatusText: document.getElementById("syncStatusText"),
+        lastSyncedText: document.getElementById("lastSyncedText"),
+        searchInput: document.getElementById("searchInput"),
+        clearSearchBtn: document.getElementById("clearSearchBtn"),
+        categoryPills: document.getElementById("categoryPills"),
+        catalogList: document.getElementById("catalogList"),
+        catalogCountText: document.getElementById("catalogCountText"),
+        customItemForm: document.getElementById("customItemForm"),
+        customName: document.getElementById("customName"),
+        customCategory: document.getElementById("customCategory"),
+        customUnit: document.getElementById("customUnit"),
+        customQty: document.getElementById("customQty"),
+        customNotes: document.getElementById("customNotes"),
+        orderItemsContainer: document.getElementById("orderItemsContainer"),
+        orderDistinctCount: document.getElementById("orderDistinctCount"),
+        orderTotalUnits: document.getElementById("orderTotalUnits"),
+        navOrderBadge: document.getElementById("navOrderBadge"),
+        groupByCategoryBtn: document.getElementById("groupByCategoryBtn"),
+        groupFlatBtn: document.getElementById("groupFlatBtn"),
+        copyOrderTextBtn: document.getElementById("copyOrderTextBtn"),
+        exportPdfBtn: document.getElementById("exportPdfBtn"),
+        sendToSheetsBtn: document.getElementById("sendToSheetsBtn"),
+        clearOrderBtn: document.getElementById("clearOrderBtn"),
+        csvFileInput: document.getElementById("csvFileInput"),
+        pasteImportTextarea: document.getElementById("pasteImportTextarea"),
+        confirmImportBtn: document.getElementById("confirmImportBtn"),
+        resetDefaultCatalogBtn: document.getElementById("resetDefaultCatalogBtn"),
+        appsScriptUrlInput: document.getElementById("appsScriptUrlInput"),
+        saveScriptUrlBtn: document.getElementById("saveScriptUrlBtn"),
+        copyAppsScriptBtn: document.getElementById("copyAppsScriptBtn"),
+        appsScriptCodeBlock: document.getElementById("appsScriptCodeBlock"),
+        navGlassPill: document.getElementById("navGlassPill"),
+        toastContainer: document.getElementById("toastContainer"),
+        views: {
+          catalog: document.getElementById("viewCatalog"),
+          order: document.getElementById("viewOrder"),
+          add: document.getElementById("viewAdd"),
+          sync: document.getElementById("viewSync"),
+        },
+      };
+
+      function loadFromStorage(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (err) {
+          return fallback;
+        }
+      }
+
+      function saveToStorage(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (err) {}
+      }
+
+      // iOS Dynamic Island Style Floating Pill Toast
+      function showToast(message, type = "success") {
+        const toast = document.createElement("div");
+        const dotColor =
+          type === "error" ? "bg-rose-400" : type === "info" ? "bg-sky-400" : "bg-[#96C92D]";
+
+        toast.className =
+          "pointer-events-auto px-4 py-2.5 rounded-full bg-slate-900/90 backdrop-blur-xl text-white shadow-xl border border-white/15 text-xs font-semibold flex items-center gap-2 transition-all duration-300";
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-10px) scale(0.95)";
+        toast.innerHTML = `<span class="w-2 h-2 rounded-full ${dotColor} shrink-0"></span><span class="truncate">${escapeHtml(message)}</span>`;
+        els.toastContainer.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateY(0) scale(1)";
+        });
+
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(-8px) scale(0.95)";
+          setTimeout(() => toast.remove(), 250);
+        }, 2600);
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function getCategoryBadgeStyle(category) {
+        const cat = (category || "").toUpperCase();
+        if (cat.includes("UNILAB")) return "bg-sky-50 text-sky-700 border-sky-200/80";
+        if (cat.includes("BRANDED")) return "bg-pink-50 text-[#B83962] border-pink-200/80";
+        if (cat.includes("GENERIC")) return "bg-lime-50 text-[#648C16] border-lime-200/80";
+        if (cat.includes("SUPP") || cat.includes("VIT")) return "bg-amber-50 text-amber-700 border-amber-200/80";
+        if (cat.includes("MILK")) return "bg-purple-50 text-purple-700 border-purple-200/80";
+        return "bg-slate-100 text-slate-700 border-slate-200/80";
+      }
+
+      // Smooth Bottom Navigation Tab Switcher with Sliding Liquid Glass Pill
+      function switchTab(tabName) {
+        if (!els.views[tabName]) return;
+        state.activeTab = tabName;
+
+        const tabOrder = ["catalog", "order", "add", "sync"];
+        const idx = tabOrder.indexOf(tabName);
+
+        // Slide the Liquid Glass indicator pill smoothly
+        if (els.navGlassPill && idx >= 0) {
+          els.navGlassPill.style.transform = `translateX(${idx * 100}%)`;
+        }
+
+        // Update active button styling
+        document.querySelectorAll(".bottom-nav-btn").forEach((btn) => {
+          const isTarget = btn.getAttribute("data-tab") === tabName;
+          btn.className = isTarget
+            ? "bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-950 font-extrabold"
+            : "bottom-nav-btn ios-press relative z-10 py-2 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium";
+        });
+
+        // Switch visible panel with smooth spring entrance
+        Object.keys(els.views).forEach((key) => {
+          const panel = els.views[key];
+          if (key === tabName) {
+            panel.classList.remove("hidden-view", "entering");
+            void panel.offsetWidth;
+            panel.classList.add("entering");
+          } else {
+            panel.classList.add("hidden-view");
+            panel.classList.remove("entering");
+          }
+        });
+
+        // Reveal header smoothly on tab change
+        els.mainHeader.style.transform = "translateY(0)";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function getDynamicCategories() {
+        const set = new Set(["ALL"]);
+        state.catalog.forEach((item) => {
+          if (item.category && item.category.trim()) {
+            set.add(item.category.trim().toUpperCase());
+          }
+        });
+        return Array.from(set);
+      }
+
+      function renderCategoryPills() {
+        const categories = getDynamicCategories();
+        if (!categories.includes(state.selectedCategory)) {
+          state.selectedCategory = "ALL";
+        }
+
+        els.categoryPills.innerHTML = categories
+          .map((cat) => {
+            const active = state.selectedCategory === cat;
+            const label = cat === "ALL" ? `All (${state.catalog.length})` : cat;
+            return `
+              <button
+                type="button"
+                data-category="${escapeHtml(cat)}"
+                class="category-pill ios-press px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap border transition ${
+                  active
+                    ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                    : "bg-white/80 text-slate-600 border-slate-200/80 hover:bg-white"
+                }"
+              >
+                ${escapeHtml(label)}
+              </button>
+            `;
+          })
+          .join("");
+
+        els.categoryPills.querySelectorAll(".category-pill").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.selectedCategory = btn.getAttribute("data-category");
+            renderCategoryPills();
+            renderCatalog();
+          });
+        });
+      }
+
+      function getFilteredCatalog() {
+        const q = state.searchQuery.trim().toLowerCase();
+        return state.catalog.filter((item) => {
+          const itemCat = (item.category || "").toUpperCase();
+          const matchesCat = state.selectedCategory === "ALL" || itemCat === state.selectedCategory;
+          if (!matchesCat) return false;
+          if (!q) return true;
+          return (
+            item.name.toLowerCase().includes(q) ||
+            itemCat.toLowerCase().includes(q) ||
+            (item.expiry && item.expiry.toLowerCase().includes(q)) ||
+            (item.notes && item.notes.toLowerCase().includes(q))
+          );
+        });
+      }
+
+      function renderCatalog() {
+        const filtered = getFilteredCatalog();
+        const MAX_RENDER = 150;
+        const visibleItems = filtered.slice(0, MAX_RENDER);
+
+        els.catalogCountText.textContent =
+          filtered.length > MAX_RENDER
+            ? `Showing ${MAX_RENDER} of ${filtered.length} matches (Search to narrow)`
+            : `${filtered.length} of ${state.catalog.length} items`;
+
+        if (filtered.length === 0) {
+          els.catalogList.innerHTML = `
+            <div class="liquid-glass-subtle rounded-3xl p-7 text-center space-y-2">
+              <p class="text-sm font-bold text-slate-700">Walang tugma sa "${escapeHtml(state.searchQuery)}"</p>
+              <p class="text-xs text-slate-500">Pindutin ang <strong>Add Item</strong> sa ibaba kung bagong gamot ito.</p>
+            </div>
+          `;
+          return;
+        }
+
+        els.catalogList.innerHTML = visibleItems
+          .map((item) => {
+            const existingOrder = state.orderMap[item.id];
+            const currentQty = existingOrder ? existingOrder.qty : 0;
+            const badgeClass = getCategoryBadgeStyle(item.category);
+
+            return `
+              <div class="liquid-glass-subtle rounded-3xl p-3.5 transition-all ${
+                currentQty > 0 ? "ring-2 ring-[#96C92D] bg-white/95" : ""
+              }">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="px-2 py-0.5 text-[10px] font-extrabold rounded-lg border ${badgeClass}">
+                        ${escapeHtml(item.category || "OTHER")}
+                      </span>
+                      ${
+                        item.expiry
+                          ? `<span class="px-2 py-0.5 text-[10px] font-semibold rounded-lg bg-amber-50 text-amber-800 border border-amber-200/70">
+                              Exp: ${escapeHtml(item.expiry)}
+                            </span>`
+                          : ""
+                      }
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 mt-1 leading-snug break-words">
+                      ${escapeHtml(item.name)}
+                    </h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                      Unit: <span class="font-semibold text-slate-700">${escapeHtml(item.unit || "box")}</span>
+                      ${
+                        currentQty > 0
+                          ? ` • <span class="font-bold text-[#648C16]">In Order: ${currentQty}</span>`
+                          : ""
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Touch-friendly Stepper + Add Pill -->
+                <div class="mt-2.5 pt-2.5 border-t border-slate-100/80 flex items-center justify-between gap-2">
+                  <div class="flex items-center rounded-2xl bg-slate-100 p-0.5 border border-slate-200/70">
+                    <button
+                      type="button"
+                      aria-label="Decrease quantity"
+                      data-action="dec"
+                      data-id="${escapeHtml(item.id)}"
+                      class="qty-step-btn ios-press w-8 h-8 rounded-xl bg-white text-slate-800 font-extrabold text-base flex items-center justify-center shadow-2xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value="${currentQty > 0 ? currentQty : 1}"
+                      data-id="${escapeHtml(item.id)}"
+                      class="catalog-qty-input w-12 h-8 text-center text-sm font-extrabold bg-transparent focus:outline-none tabular-nums"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Increase quantity"
+                      data-action="inc"
+                      data-id="${escapeHtml(item.id)}"
+                      class="qty-step-btn ios-press w-8 h-8 rounded-xl bg-white text-slate-800 font-extrabold text-base flex items-center justify-center shadow-2xs"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    data-id="${escapeHtml(item.id)}"
+                    class="add-to-order-btn ios-press flex-1 h-9 px-3 rounded-2xl text-xs font-extrabold ${
+                      currentQty > 0
+                        ? "bg-[#96C92D] text-slate-950"
+                        : "bg-slate-900 text-white"
+                    } transition flex items-center justify-center gap-1.5"
+                  >
+                    <span>${currentQty > 0 ? "Update Qty" : "+ Add to Order"}</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        els.catalogList.querySelectorAll(".qty-step-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            const action = btn.getAttribute("data-action");
+            const input = els.catalogList.querySelector(`.catalog-qty-input[data-id="${id}"]`);
+            if (!input) return;
+            let val = parseInt(input.value, 10) || 1;
+            val = action === "inc" ? val + 1 : Math.max(1, val - 1);
+            input.value = val;
+          });
+        });
+
+        els.catalogList.querySelectorAll(".add-to-order-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            const input = els.catalogList.querySelector(`.catalog-qty-input[data-id="${id}"]`);
+            const qty = Math.max(1, parseInt(input ? input.value : "1", 10) || 1);
+            setOrderQuantity(id, qty);
+          });
+        });
+      }
+
+      function parseCsvRow(line) {
+        const result = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === "," && !inQuotes) {
+            result.push(current.trim());
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      }
+
+      function parseMainSheetCsv(csvText) {
+        const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        const extracted = [];
+
+        for (let r = 3; r < lines.length; r++) {
+          const cols = parseCsvRow(lines[r]);
+          const rawCategory = cols[8] ? cols[8].trim() : "";
+          const rawName = cols[9] ? cols[9].trim() : "";
+          const rawExpiry = cols[10] ? cols[10].trim() : "";
+
+          if (!rawName || rawName.toUpperCase() === "NAME" || rawName.toUpperCase() === "ITEM NAME") {
+            continue;
+          }
+
+          extracted.push({
+            id: `sheet-r${r + 1}-${rawName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            category: rawCategory ? rawCategory.toUpperCase() : "OTHER",
+            name: rawName,
+            expiry: rawExpiry,
+            unit: "box",
+            notes: "",
+          });
+        }
+
+        return extracted;
+      }
+
+      async function syncInventoryFromGoogleSheet(silent = false) {
+        if (state.isSyncing) return;
+        state.isSyncing = true;
+
+        els.syncInventoryBtn.disabled = true;
+        els.syncIcon.classList.add("animate-spin");
+        els.syncStatusDot.className = "w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0";
+        els.syncStatusText.textContent = "Syncing MAIN SHEET...";
+
+        try {
+          let syncedItems = [];
+
+          if (state.scriptUrl) {
+            const resp = await fetch(state.scriptUrl, { method: "GET" });
+            if (resp.ok) {
+              const json = await resp.json();
+              if (json && Array.isArray(json.items) && json.items.length > 0) {
+                syncedItems = json.items.map((it, idx) => ({
+                  id: it.id || `gas-${idx}-${(it.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+                  category: (it.category || "OTHER").toUpperCase(),
+                  name: it.name || "",
+                  expiry: it.expiry || "",
+                  unit: it.unit || "box",
+                  notes: it.notes || "",
+                }));
+              }
+            }
+          }
+
+          if (syncedItems.length === 0) {
+            const csvResp = await fetch(PUBLIC_GVIZ_CSV_URL);
+            if (!csvResp.ok) throw new Error(`HTTP ${csvResp.status}`);
+            const csvText = await csvResp.text();
+            syncedItems = parseMainSheetCsv(csvText);
+          }
+
+          if (syncedItems.length === 0) {
+            throw new Error("No items found");
+          }
+
+          const customItems = state.catalog.filter((c) => c.id.startsWith("custom-"));
+          state.catalog = [...customItems, ...syncedItems];
+
+          const nowStr = new Date().toLocaleTimeString("en-PH", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          state.lastSynced = nowStr;
+
+          saveToStorage(STORAGE_KEYS.CATALOG, state.catalog);
+          saveToStorage(STORAGE_KEYS.LAST_SYNCED, state.lastSynced);
+
+          els.syncStatusDot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0";
+          els.syncStatusText.textContent = `${syncedItems.length} items synced`;
+          els.lastSyncedText.textContent = `Synced ${nowStr}`;
+
+          renderCategoryPills();
+          renderCatalog();
+          renderOrderList();
+
+          if (!silent) {
+            showToast(`Synced ${syncedItems.length} items from Google Sheet!`, "success");
+          }
+        } catch (err) {
+          els.syncStatusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0";
+          els.syncStatusText.textContent = "Offline / Check Sheet sharing";
+          if (!silent) {
+            showToast("Sync failed — check Wi-Fi or Sheet sharing.", "error");
+          }
+        } finally {
+          state.isSyncing = false;
+          els.syncInventoryBtn.disabled = false;
+          els.syncIcon.classList.remove("animate-spin");
+        }
+      }
+
+      function setOrderQuantity(itemId, qty) {
+        const item = state.catalog.find((c) => c.id === itemId);
+        if (!item) return;
+
+        const cleanQty = Math.max(0, parseInt(qty, 10) || 0);
+        if (cleanQty <= 0) {
+          delete state.orderMap[itemId];
+          showToast(`Removed ${item.name}`, "info");
+        } else {
+          state.orderMap[itemId] = {
+            qty: cleanQty,
+            notes: state.orderMap[itemId]?.notes || item.notes || "",
+          };
+          showToast(`${item.name} (${cleanQty} ${item.unit || "box"}) added`, "success");
+        }
+
+        saveToStorage(STORAGE_KEYS.ORDERS, state.orderMap);
+        renderCatalog();
+        renderOrderList();
+      }
+
+      function getOrderedItems() {
+        const list = [];
+        for (const item of state.catalog) {
+          const entry = state.orderMap[item.id];
+          if (entry && entry.qty > 0) {
+            list.push({
+              ...item,
+              qty: entry.qty,
+              orderNotes: entry.notes !== undefined ? entry.notes : item.notes || "",
+            });
+          }
+        }
+        return list;
+      }
+
+      function renderOrderList() {
+        const ordered = getOrderedItems();
+        const totalUnits = ordered.reduce((sum, item) => sum + item.qty, 0);
+
+        els.orderDistinctCount.textContent = `${ordered.length} unique ${ordered.length === 1 ? "item" : "items"}`;
+        els.orderTotalUnits.textContent = totalUnits;
+
+        if (ordered.length > 0) {
+          els.navOrderBadge.textContent = ordered.length;
+          els.navOrderBadge.classList.remove("hidden");
+        } else {
+          els.navOrderBadge.classList.add("hidden");
+        }
+
+        const hasItems = ordered.length > 0;
+        els.copyOrderTextBtn.disabled = !hasItems;
+        els.exportPdfBtn.disabled = !hasItems;
+        els.sendToSheetsBtn.disabled = !hasItems;
+        els.clearOrderBtn.disabled = !hasItems;
+
+        if (!hasItems) {
+          els.orderItemsContainer.innerHTML = `
+            <div class="py-8 text-center space-y-1">
+              <p class="text-sm font-bold text-slate-600">Wala pang laman ang Order List</p>
+              <p class="text-xs text-slate-400">Pumunta sa <strong>Catalog</strong> tab para pumili ng gamot.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const renderSingleOrderRow = (item) => `
+          <div class="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-2.5">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                  ${escapeHtml(item.category)}
+                </span>
+                ${
+                  item.expiry
+                    ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800">
+                        Exp: ${escapeHtml(item.expiry)}
+                      </span>`
+                    : ""
+                }
+              </div>
+              <p class="text-sm font-bold text-slate-900 mt-1 leading-snug break-words">${escapeHtml(item.name)}</p>
+              <input
+                type="text"
+                value="${escapeHtml(item.orderNotes)}"
+                placeholder="Note (optional)..."
+                data-id="${escapeHtml(item.id)}"
+                class="order-note-input mt-1.5 w-full px-2.5 py-1 text-xs rounded-xl bg-slate-100/80 border border-transparent focus:bg-white focus:border-[#96C92D] outline-none text-slate-600"
+              />
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <input
+                type="number"
+                min="0"
+                value="${item.qty}"
+                data-id="${escapeHtml(item.id)}"
+                class="order-qty-edit w-14 py-1.5 text-center text-sm font-extrabold rounded-xl bg-slate-100 border border-slate-200 focus:bg-white focus:border-[#96C92D] outline-none tabular-nums"
+              />
+              <button
+                type="button"
+                title="Remove item"
+                data-id="${escapeHtml(item.id)}"
+                class="remove-order-item-btn ios-press p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+
+        if (state.groupByCategory) {
+          const grouped = {};
+          ordered.forEach((item) => {
+            const cat = item.category || "OTHER";
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(item);
+          });
+
+          els.orderItemsContainer.innerHTML = Object.keys(grouped)
+            .sort()
+            .map(
+              (cat) => `
+                <div class="py-3 first:pt-0 last:pb-0">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#B83962]">${escapeHtml(cat)}</span>
+                    <span class="text-[10px] font-semibold text-slate-400 tabular-nums">${grouped[cat].length} item(s)</span>
+                  </div>
+                  <div class="divide-y divide-slate-100">
+                    ${grouped[cat].map(renderSingleOrderRow).join("")}
+                  </div>
+                </div>
+              `
+            )
+            .join("");
+        } else {
+          els.orderItemsContainer.innerHTML = ordered.map(renderSingleOrderRow).join("");
+        }
+
+        els.orderItemsContainer.querySelectorAll(".order-qty-edit").forEach((input) => {
+          input.addEventListener("change", () => {
+            const id = input.getAttribute("data-id");
+            setOrderQuantity(id, input.value);
+          });
+        });
+
+        els.orderItemsContainer.querySelectorAll(".order-note-input").forEach((input) => {
+          input.addEventListener("input", () => {
+            const id = input.getAttribute("data-id");
+            if (state.orderMap[id]) {
+              state.orderMap[id].notes = input.value;
+              saveToStorage(STORAGE_KEYS.ORDERS, state.orderMap);
+            }
+          });
+        });
+
+        els.orderItemsContainer.querySelectorAll(".remove-order-item-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            setOrderQuantity(id, 0);
+          });
+        });
+      }
+
+      function copyToClipboard(text, successMsg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(() => showToast(successMsg))
+            .catch(() => fallbackCopy(text, successMsg));
+        } else {
+          fallbackCopy(text, successMsg);
+        }
+      }
+
+      function fallbackCopy(text, successMsg) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand("copy");
+          showToast(successMsg);
+        } catch (err) {
+          showToast("Copy failed.", "error");
+        } finally {
+          document.body.removeChild(textarea);
+        }
+      }
+
+      function formatOrderText() {
+        const ordered = getOrderedItems();
+        const today = new Date().toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        const lines = [`PHARMASSENTIALS PHARMACY — ORDER LIST (${today})`, "--------------------------------"];
+
+        if (state.groupByCategory) {
+          const grouped = {};
+          ordered.forEach((item) => {
+            const cat = item.category || "OTHER";
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(item);
+          });
+
+          Object.keys(grouped)
+            .sort()
+            .forEach((cat) => {
+              lines.push(`\n[${cat}]`);
+              grouped[cat].forEach((item) => {
+                const notePart = item.orderNotes ? ` (${item.orderNotes})` : "";
+                lines.push(`• ${item.name} — ${item.qty} ${item.unit || "box"}${notePart}`);
+              });
+            });
+        } else {
+          ordered.forEach((item) => {
+            const notePart = item.orderNotes ? ` (${item.orderNotes})` : "";
+            lines.push(`• [${item.category}] ${item.name} — ${item.qty} ${item.unit || "box"}${notePart}`);
+          });
+        }
+
+        const totalUnits = ordered.reduce((sum, i) => sum + i.qty, 0);
+        lines.push(`\nTotal Items: ${ordered.length} | Total Qty: ${totalUnits}`);
+        return lines.join("\n");
+      }
+
+      // Clean PDF Export with New Bag + Leaf Emblem & Full Multi-Line Wrapped Names
+      function exportOrderPdf() {
+        const ordered = getOrderedItems();
+        if (ordered.length === 0) return;
+
+        const now = new Date();
+        const dateLabel = now.toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        const fileDateStr = now.toISOString().slice(0, 10);
+        const totalUnits = ordered.reduce((sum, item) => sum + item.qty, 0);
+
+        const sortedItems = state.groupByCategory
+          ? [...ordered].sort((a, b) => {
+              const catCmp = (a.category || "").localeCompare(b.category || "");
+              return catCmp !== 0 ? catCmp : (a.name || "").localeCompare(b.name || "");
+            })
+          : ordered;
+
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          showToast("PDF library loading — try again in a second.", "error");
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        });
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const marginX = 12;
+
+        // Header Card
+        doc.setFillColor(18, 20, 26);
+        doc.roundedRect(marginX, 10, pageWidth - marginX * 2, 28, 3, 3, "F");
+
+        // Vector Bag + Leaf Emblem in PDF Header
+        const iconX = marginX + 6;
+        const iconY = 15;
+        doc.setDrawColor(150, 201, 45);
+        doc.setLineWidth(1.3);
+        doc.circle(iconX + 6, iconY + 4.2, 3.2);
+        doc.setFillColor(150, 201, 45);
+        doc.roundedRect(iconX + 1, iconY + 4.5, 10, 12.5, 1.5, 1.5, "F");
+        doc.setFillColor(212, 77, 120);
+        doc.ellipse(iconX + 6.2, iconY + 11.2, 3.2, 1.8, "F");
+
+        // Brand Wordmark
+        const textX = iconX + 15;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.setTextColor(212, 77, 120);
+        doc.text("PHARMA", textX, 23);
+        const w1 = doc.getTextWidth("PHARMA");
+        doc.setTextColor(150, 201, 45);
+        doc.text("SSENTIALS", textX + w1, 23);
+
+        doc.setFontSize(9);
+        doc.setTextColor(212, 77, 120);
+        doc.text("PHARMACY  •  PURCHASE ORDER", textX, 30);
+
+        // Right Metadata
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10.5);
+        doc.text("ORDER LIST", pageWidth - marginX - 6, 22, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(203, 213, 225);
+        doc.text(`Date: ${dateLabel}`, pageWidth - marginX - 6, 27.5, { align: "right" });
+        doc.text(`Items: ${sortedItems.length}  |  Total Qty: ${totalUnits}`, pageWidth - marginX - 6, 32.5, { align: "right" });
+
+        const tableBody = sortedItems.map((item, idx) => {
+          const fullNameWithNote = item.orderNotes
+            ? `${item.name}\nNote: ${item.orderNotes}`
+            : item.name;
+
+          return [
+            String(idx + 1),
+            item.category || "OTHER",
+            fullNameWithNote,
+            item.expiry || "—",
+            `${item.qty} ${item.unit || "box"}`,
+          ];
+        });
+
+        doc.autoTable({
+          startY: 43,
+          margin: { left: marginX, right: marginX, bottom: 16 },
+          head: [["#", "Category", "Medicine / Product Name (Full Description)", "Expiry", "Order Qty"]],
+          body: tableBody,
+          theme: "grid",
+          styles: {
+            font: "helvetica",
+            fontSize: 9.5,
+            cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+            textColor: [15, 23, 42],
+            lineColor: [203, 213, 225],
+            lineWidth: 0.25,
+            overflow: "linebreak",
+            valign: "middle",
+          },
+          headStyles: {
+            fillColor: [212, 77, 120],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+            fontSize: 9.5,
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252],
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: "center", textColor: [100, 116, 139] },
+            1: { cellWidth: 28, fontStyle: "bold", fontSize: 8.5 },
+            2: { cellWidth: 96, fontStyle: "bold" },
+            3: { cellWidth: 24, halign: "center", fontSize: 8.5 },
+            4: { cellWidth: 28, halign: "right", fontStyle: "bold", textColor: [100, 140, 22] },
+          },
+        });
+
+        const finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 50) + 6;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const summaryY = finalY + 14 > pageHeight ? (doc.addPage(), 20) : finalY;
+
+        doc.setFillColor(241, 245, 249);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(marginX, summaryY, pageWidth - marginX * 2, 12, 2, 2, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`SUMMARY:  ${sortedItems.length} Unique Item(s)`, marginX + 4, summaryY + 7.5);
+        doc.setTextColor(212, 77, 120);
+        doc.text(`TOTAL ORDER QUANTITY:  ${totalUnits} unit(s)`, pageWidth - marginX - 4, summaryY + 7.5, { align: "right" });
+
+        doc.save(`PHARMASSENTIALS-Order-List-${fileDateStr}.pdf`);
+        showToast("PDF downloaded!");
+      }
+
+      async function sendOrderToGoogleSheets() {
+        const ordered = getOrderedItems();
+        if (ordered.length === 0) return;
+
+        if (!state.scriptUrl) {
+          showToast("Setup Apps Script URL in Sync tab first.", "info");
+          switchTab("sync");
+          return;
+        }
+
+        els.sendToSheetsBtn.disabled = true;
+        const originalText = els.sendToSheetsBtn.innerHTML;
+        els.sendToSheetsBtn.innerHTML = `<span>Sending...</span>`;
+
+        try {
+          await fetch(state.scriptUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              source: "PHARMASSENTIALS Mobile App",
+              items: ordered.map((item) => ({
+                category: item.category,
+                name: item.name,
+                qty: item.qty,
+                unit: item.unit || "box",
+                expiry: item.expiry || "",
+                notes: item.orderNotes || "",
+              })),
+            }),
+          });
+          showToast("Sent to ORDER LIST tab in Google Sheet!", "success");
+        } catch (err) {
+          showToast("Error sending to Google Sheet.", "error");
+        } finally {
+          els.sendToSheetsBtn.disabled = false;
+          els.sendToSheetsBtn.innerHTML = originalText;
+        }
+      }
+
+      function parseImportedLines(rawText) {
+        const lines = rawText
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+
+        const parsed = [];
+        lines.forEach((line, idx) => {
+          const parts = line.includes("\t") ? line.split("\t") : parseCsvRow(line);
+          const cleaned = parts.map((p) => p.trim().replace(/^"|"$/g, ""));
+
+          if (idx === 0 && cleaned[0] && cleaned[0].toLowerCase() === "category") return;
+
+          if (cleaned.length === 1 && cleaned[0]) {
+            parsed.push({
+              id: `imp-${Date.now()}-${idx}`,
+              category: "OTHER",
+              name: cleaned[0],
+              unit: "box",
+              expiry: "",
+              notes: "",
+            });
+          } else if (cleaned.length >= 2 && cleaned[1]) {
+            const catUpper = (cleaned[0] || "OTHER").toUpperCase();
+            parsed.push({
+              id: `imp-${Date.now()}-${idx}`,
+              category: catUpper || "OTHER",
+              name: cleaned[1],
+              unit: cleaned[2] || "box",
+              expiry: cleaned[3] || "",
+              notes: cleaned.slice(4).join(" ") || "",
+            });
+          }
+        });
+
+        return parsed;
+      }
+
+      function bindEvents() {
+        // Auto-hide compact top header when scrolling down
+        let lastScrollY = window.scrollY;
+        let scrollTicking = false;
+
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (!scrollTicking) {
+              window.requestAnimationFrame(() => {
+                const currentScrollY = window.scrollY;
+                const delta = currentScrollY - lastScrollY;
+
+                if (currentScrollY <= 48) {
+                  els.mainHeader.style.transform = "translateY(0)";
+                } else if (delta > 6) {
+                  els.mainHeader.style.transform = "translateY(-110%)";
+                } else if (delta < -6) {
+                  els.mainHeader.style.transform = "translateY(0)";
+                }
+
+                lastScrollY = currentScrollY;
+                scrollTicking = false;
+              });
+              scrollTicking = true;
+            }
+          },
+          { passive: true }
+        );
+
+        // Bottom Liquid Glass Nav Clicks
+        document.querySelectorAll(".bottom-nav-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetTab = btn.getAttribute("data-tab");
+            switchTab(targetTab);
+          });
+        });
+
+        els.syncInventoryBtn.addEventListener("click", () => syncInventoryFromGoogleSheet(false));
+        els.syncInventoryBtnAlt.addEventListener("click", () => syncInventoryFromGoogleSheet(false));
+
+        els.searchInput.addEventListener("input", (e) => {
+          state.searchQuery = e.target.value;
+          els.clearSearchBtn.classList.toggle("hidden", !state.searchQuery);
+          renderCatalog();
+        });
+
+        els.clearSearchBtn.addEventListener("click", () => {
+          state.searchQuery = "";
+          els.searchInput.value = "";
+          els.clearSearchBtn.classList.add("hidden");
+          renderCatalog();
+        });
+
+        // Custom item submit
+        els.customItemForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const name = els.customName.value.trim();
+          if (!name) return;
+
+          const newItem = {
+            id: `custom-${Date.now()}`,
+            category: els.customCategory.value,
+            name,
+            unit: els.customUnit.value.trim() || "box",
+            expiry: "",
+            notes: els.customNotes.value.trim(),
+          };
+
+          state.catalog.unshift(newItem);
+          saveToStorage(STORAGE_KEYS.CATALOG, state.catalog);
+
+          const initialQty = parseInt(els.customQty.value, 10) || 0;
+          if (initialQty > 0) {
+            state.orderMap[newItem.id] = { qty: initialQty, notes: newItem.notes };
+            saveToStorage(STORAGE_KEYS.ORDERS, state.orderMap);
+          }
+
+          els.customItemForm.reset();
+          els.customQty.value = "1";
+          els.customUnit.value = "box";
+
+          renderCategoryPills();
+          renderCatalog();
+          renderOrderList();
+          showToast(`Added "${name}"!`);
+          switchTab("order");
+        });
+
+        // Grouping toggle
+        els.groupByCategoryBtn.addEventListener("click", () => {
+          state.groupByCategory = true;
+          els.groupByCategoryBtn.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white text-slate-900 transition";
+          els.groupFlatBtn.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition";
+          renderOrderList();
+        });
+
+        els.groupFlatBtn.addEventListener("click", () => {
+          state.groupByCategory = false;
+          els.groupFlatBtn.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white text-slate-900 transition";
+          els.groupByCategoryBtn.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white transition";
+          renderOrderList();
+        });
+
+        els.copyOrderTextBtn.addEventListener("click", () => {
+          copyToClipboard(formatOrderText(), "Order list copied!");
+        });
+
+        els.exportPdfBtn.addEventListener("click", exportOrderPdf);
+        els.sendToSheetsBtn.addEventListener("click", sendOrderToGoogleSheets);
+
+        els.clearOrderBtn.addEventListener("click", () => {
+          state.orderMap = {};
+          saveToStorage(STORAGE_KEYS.ORDERS, state.orderMap);
+          renderCatalog();
+          renderOrderList();
+          showToast("Order list cleared.", "info");
+        });
+
+        // CSV / Paste import
+        els.csvFileInput.addEventListener("change", (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            els.pasteImportTextarea.value = String(ev.target.result || "");
+          };
+          reader.readAsText(file);
+        });
+
+        els.confirmImportBtn.addEventListener("click", () => {
+          const imported = parseImportedLines(els.pasteImportTextarea.value);
+          if (imported.length === 0) {
+            showToast("No valid lines detected.", "error");
+            return;
+          }
+
+          state.catalog = [...imported, ...state.catalog];
+          saveToStorage(STORAGE_KEYS.CATALOG, state.catalog);
+          els.pasteImportTextarea.value = "";
+          els.csvFileInput.value = "";
+          renderCategoryPills();
+          renderCatalog();
+          showToast(`Imported ${imported.length} items!`);
+          switchTab("catalog");
+        });
+
+        els.resetDefaultCatalogBtn.addEventListener("click", () => {
+          state.catalog = [...DEFAULT_CATALOG];
+          saveToStorage(STORAGE_KEYS.CATALOG, state.catalog);
+          renderCategoryPills();
+          renderCatalog();
+          showToast("Restored sample items.", "info");
+        });
+
+        // Apps Script URL save & copy
+        els.saveScriptUrlBtn.addEventListener("click", () => {
+          const url = els.appsScriptUrlInput.value.trim();
+          state.scriptUrl = url;
+          saveToStorage(STORAGE_KEYS.SCRIPT_URL, url);
+          showToast("Apps Script URL saved!");
+          syncInventoryFromGoogleSheet(false);
+        });
+
+        els.copyAppsScriptBtn.addEventListener("click", () => {
+          copyToClipboard(els.appsScriptCodeBlock.textContent, "Apps Script code copied!");
+        });
+      }
+
+      function init() {
+        // Dismiss smooth app launch splash after entrance animation
+        const splash = document.getElementById("appLaunchSplash");
+        if (splash) {
+          setTimeout(() => {
+            splash.classList.add("splash-hide");
+            setTimeout(() => splash.remove(), 550);
+          }, 650);
+        }
+
+        els.appsScriptUrlInput.value = state.scriptUrl || "";
+        if (state.lastSynced) {
+          els.lastSyncedText.textContent = `Synced ${state.lastSynced}`;
+        }
+        renderCategoryPills();
+        renderCatalog();
+        renderOrderList();
+        bindEvents();
+        switchTab("catalog");
+
+        // Auto-sync latest items from MAIN SHEET
+        syncInventoryFromGoogleSheet(true);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
